@@ -299,12 +299,12 @@ contract MilkCoinToken is MintableToken {
   function addAddress(address addr) internal {
     if(!savedAddresses[addr]) {
        savedAddresses[addr] = true;
-       address.push(addr); 
+       addresses.push(addr); 
     }
   }
 
   function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
-    bool result = super.mint();
+    bool result = super.mint(_to, _amount);
     if(result) {
       addAddress(_to);
     }
@@ -321,8 +321,8 @@ contract MilkCoinToken is MintableToken {
 
   function postProcessTransfer(bool result, address _from, address _to, uint256 _value) public returns (bool) {
     if(result) {
-      if(to == this) {
-        buyBack(msg.sender, _to, _value);
+      if(_to == address(this)) {
+        buyBack(_from, _value);
       } else { 
         addAddress(_to);
       }
@@ -330,10 +330,10 @@ contract MilkCoinToken is MintableToken {
     return result;
   }
 
-  function buyBack(address from, address to, uint amount) internal {
+  function buyBack(address from, uint amount) internal {
     if(now > endBuyBackDate) {
       startBuyBackDate = endBuyBackDate;
-      endBuyBackDate = startBuyBackDate + 1 year;      
+      endBuyBackDate = startBuyBackDate + 1 years;      
       toBuyBack = tokensAfterCrowdsale.div(10);
     }
     require(now > startBuyBackDate && now < endBuyBackDate && amount <= toBuyBack); 
@@ -346,12 +346,12 @@ contract MilkCoinToken is MintableToken {
   }
 
   function retrieveTokens(address anotherToken) public onlyOwner {
-    require(anotherToken != this);
+    require(anotherToken != address(this));
     ERC20 alienToken = ERC20(anotherToken);
     alienToken.transfer(owner, alienToken.balanceOf(this));
   }
 
-  function finishMinting(uint invested) onlyOwner public returns (bool) {
+  function finishMinting(uint newInvested) onlyOwner public returns (bool) {
     invested = newInvested;
     tokensAfterCrowdsale = totalSupply;    
     startBuyBackDate = now;
@@ -361,10 +361,10 @@ contract MilkCoinToken is MintableToken {
   }
 
   function payDividends() public {
-    ethToDividendsNeeds.sub();
-    uint dividends = dividends[msg.sedner];
-    dividends[msg.sedner] = 0;
-    msg.sender.transfer(dividends);
+    uint dividendsValue = dividends[msg.sender];
+    dividends[msg.sender] = 0;
+    ethToDividendsNeeds = ethToDividendsNeeds.sub(dividendsValue);
+    msg.sender.transfer(dividendsValue);
   }
 
   function resetDividendsCalculation() public onlyOwner {
@@ -453,14 +453,14 @@ contract CommonCrowdsale is Ownable {
   }
 
   function addMilestone(uint limit, uint bonus) public onlyOwner {
-    milestones.push(Discount(limit, bonus));
+    milestones.push(Milestone(limit, bonus));
   }
 
   function end() public constant returns(uint) {
     uint last = start;
     for (uint i = 0; i < milestones.length; i++) {
       Milestone storage milestone = milestones[i];
-      last += last.periodInDays * 1 days;
+      last += milestone.periodInDays * 1 days;
     }
     return last;
   }
@@ -485,7 +485,7 @@ contract CommonCrowdsale is Ownable {
     require(now >= start && invested < hardcap);
     wallet.transfer(msg.value);
     invested = invested.add(msg.value);
-    uint tokens = price.mul(msg.value).div(10**(1 ether - token.decimals));
+    uint tokens = price.mul(msg.value).div(10000000000000000);
     uint bonusPercent = getMilestoneBonus();    
     if(bonusPercent > 0) {
       tokens = tokens.add(tokens.mul(bonusPercent).div(PERCENT_RATE));

@@ -8,8 +8,8 @@ module.exports = {
     development: {
       host: 'localhost',
       port: 8545,
-      network_id: '*',
-      gas: 10000000
+      network_id: '*'/*,
+      gas: 10000000*/
     }
   }
 };

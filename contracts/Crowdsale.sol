@@ -288,6 +288,10 @@ contract MilkCoinToken is MintableToken {
 
   uint public dividendsIndex;
 
+  uint public dividendsPayedIndex;
+      
+  bool public dividendsPayed;
+
   uint public ethToDividendsNeeds;
 
   address[] public addresses;
@@ -301,6 +305,10 @@ contract MilkCoinToken is MintableToken {
        savedAddresses[addr] = true;
        addresses.push(addr); 
     }
+  }
+
+  function countOfAddresses() public constant returns(uint) {
+    return addresses.length;
   }
 
   function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
@@ -369,20 +377,42 @@ contract MilkCoinToken is MintableToken {
 
   function resetDividendsCalculation() public onlyOwner {
     dividendsCalculated = false;
+    dividendsPayed = false;
+  }
+
+  // re-entrance attack can freeze all dividends calculation
+  function payDividends(uint count) public onlyOwner {
+    require(!dividendsPayed && dividendsCalculated);
+    for(uint i = 0; dividendsPayedIndex < addresses.length && i < count; i++) {
+      address tokenHolder = addresses[dividendsPayedIndex];
+      if(balances[tokenHolder] != 0) {
+        uint value = dividends[tokenHolder];
+        dividends[tokenHolder] = 0;
+        ethToDividendsNeeds = ethToDividendsNeeds.sub(value);
+        tokenHolder.transfer(value);
+      }
+      dividendsPayedIndex++;
+    }
+    if(dividendsPayedIndex == addresses.length) {  
+      dividendsPayedIndex = 0;
+      dividendsPayed = true;
+    }
   }
   
+
+  // re-entrance attack can freeze all dividends calculation
   function calculateDividends(uint percent, uint count) public onlyOwner {
     require(!dividendsCalculated);
     for(uint i = 0; dividendsIndex < addresses.length && i < count; i++) {
-      dividendsIndex++;
-      address tokenHolder = addresses[i];
+      address tokenHolder = addresses[dividendsIndex];
       if(balances[tokenHolder] != 0) {
         uint valueInWei = balances[tokenHolder].mul(invested).mul(percent).div(PERCENT_RATE).div(totalSupply);
         ethToDividendsNeeds = ethToDividendsNeeds.add(valueInWei);
         dividends[tokenHolder] = dividends[tokenHolder].add(valueInWei);
       }
+      dividendsIndex++;
     }
-    if(dividendsIndex + 1 == addresses.length) {  
+    if(dividendsIndex == addresses.length) {  
       dividendsIndex = 0;
       dividendsCalculated = true;
     }
@@ -404,6 +434,8 @@ contract MilkCoinToken is MintableToken {
 contract CommonCrowdsale is Ownable {
 
   using SafeMath for uint256;
+ 
+  uint public constant DIVIDER = 10000000000000000;
 
   uint public constant PERCENT_RATE = 100;
 
@@ -482,10 +514,10 @@ contract CommonCrowdsale is Ownable {
   }
 
   function createTokens() public payable {
-    require(now >= start && invested < hardcap);
+    require(now >= start && now < end() && invested < hardcap);
     wallet.transfer(msg.value);
     invested = invested.add(msg.value);
-    uint tokens = price.mul(msg.value).div(10000000000000000);
+    uint tokens = price.mul(msg.value).div(DIVIDER);
     uint bonusPercent = getMilestoneBonus();    
     if(bonusPercent > 0) {
       tokens = tokens.add(tokens.mul(bonusPercent).div(PERCENT_RATE));
@@ -511,7 +543,7 @@ contract CommonCrowdsale is Ownable {
 
 contract MilkCoinTokenCrowdsale is CommonCrowdsale {
 
-  function MilkCointTokenCrowdsale() public {
+  function MilkCoinTokenCrowdsale() public {
     setHardcap(250000000000000000000000);
     setStart(1510758000);
     setPrice(1500);
@@ -521,7 +553,7 @@ contract MilkCoinTokenCrowdsale is CommonCrowdsale {
     addMilestone(5, 43);
     addMilestone(5, 25);
     addMilestone(12, 0);
-    transferOwnership(0xb794B6c611bFC09ABD206184417082d3CA570FB7);
+   // transferOwnership(0xb794B6c611bFC09ABD206184417082d3CA570FB7);
   }
 
 }

@@ -16,7 +16,7 @@ const MilkCoinTokenCrowdsale = artifacts.require('MilkCoinTokenCrowdsale')
 
 contract('MilkCoinTokenCrowdsale', function(wallets) {
 
-  const owner = wallets[0]
+  var owner = wallets[0]
 
   const notOwner = wallets[1]
   
@@ -26,7 +26,7 @@ contract('MilkCoinTokenCrowdsale', function(wallets) {
 
   const bountyUser = wallets[4]
 
-  const value = ether(42)
+  const value = ether(3)
   
   before(async function() {
     //Advance to the next block to correctly read time in the solidity "now" function interpreted by testrpc
@@ -35,51 +35,44 @@ contract('MilkCoinTokenCrowdsale', function(wallets) {
   
   beforeEach(async function () {
     this.crowdsale = await MilkCoinTokenCrowdsale.new()
+    //owner = await this.crowdsale.owner()
   })	 
   
-  describe('not owner reject tests', function () {
-
-      it('MilkCointTokenCrowdsale reject if not owner', async function () {
-        await this.crowdsale.MilkCointTokenCrowdsale({from: notOwner}).should.be.rejectedWith(EVMThrow)
-      })
-
-  })
-
   describe('accepting payments', function () {
 
     it('should reject payments before start for purchaser', async function () {
-      await this.crowdsale.send(value).should.be.rejectedWith(EVMThrow)
+      await this.crowdsale.sendTransaction({from: purchaser, value: value}).should.be.rejectedWith(EVMThrow)
       await this.crowdsale.createTokens({from: purchaser, value: value}).should.be.rejectedWith(EVMThrow)
     })
 
     it('should reject payments before start for owner', async function () {
-      await this.crowdsale.send(value).should.be.rejectedWith(EVMThrow)
+      await this.crowdsale.sendTransaction({from: owner, value: value}).should.be.rejectedWith(EVMThrow)
       await this.crowdsale.createTokens({from: owner, value: value}).should.be.rejectedWith(EVMThrow)
       await this.crowdsale.createTokensManually(bountyUser, value, {from: owner}).should.be.rejectedWith(EVMThrow)
     })
 
     it('should accept payments after start for purchaser', async function () {
-      await increaseTimeTo(this.startTime)
-      await this.crowdsale.send(value).should.be.fulfilled
+      let start = await this.crowdsale.start()
+      await increaseTimeTo(start)
+      await this.crowdsale.sendTransaction({from: purchaser, value: value}).should.be.fulfilled
       await this.crowdsale.createTokens({value: value, from: purchaser}).should.be.fulfilled
     })
 
     it('should accept payments after start for owner', async function () {
-      await increaseTimeTo(this.startTime)
-      await this.crowdsale.send(value).should.be.fulfilled
+      await this.crowdsale.sendTransaction({from: owner, value: value}).should.be.fulfilled
       await this.crowdsale.createTokens({value: value, from: owner}).should.be.fulfilled
       await this.crowdsale.createTokensManually(bountyUser, value, {from: owner}).should.be.fulfilled
     })
 
     it('should reject payments after end for purchaser', async function () {
-      await increaseTimeTo(this.afterEndTime)
-      await this.crowdsale.send(value).should.be.rejectedWith(EVMThrow)
+      let end = await this.crowdsale.end()
+      await increaseTimeTo(end)
+      await this.crowdsale.sendTransaction({from: purchaser, value: value}).should.be.rejectedWith(EVMThrow)
       await this.crowdsale.createTokens({value: value, from: purchaser}).should.be.rejectedWith(EVMThrow)
     })
 
     it('should reject payments after end for owner', async function () {
-      await increaseTimeTo(this.afterEndTime)
-      await this.crowdsale.send(value).should.be.rejectedWith(EVMThrow)
+      await this.crowdsale.sendTransaction({from: owner, value: value}).should.be.rejectedWith(EVMThrow)
       await this.crowdsale.createTokens({value: value, from: owner}).should.be.rejectedWith(EVMThrow)
       await this.crowdsale.createTokensManually(bountyUser, value, {from: owner}).should.be.rejectedWith(EVMThrow)
     })

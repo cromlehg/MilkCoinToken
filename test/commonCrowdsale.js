@@ -47,7 +47,7 @@ contract('CommonCrowdsale', function(wallets) {
         await this.commonCrowdsale.setPrice(1, {from: notOwner}).should.be.rejectedWith(EVMThrow)
       })
 
-      it('setMinInvestedLimit reject if not owner', async function () {
+      it('setMinInvestedLimit reject if not owner', async function () { 
         await this.commonCrowdsale.setMinInvestedLimit(1, {from: notOwner}).should.be.rejectedWith(EVMThrow)
       })
 

@@ -43,7 +43,7 @@ contract('MilkCoinToken', function(wallets) {
         await this.milkCoinToken.transferFrom(newAddr, newAddr, 1, {from: notOwner}).should.be.rejectedWith(EVMThrow)
       })
 
-      it('retrieveTokens reject if not owner', async function () {
+      it('retrieveTokens reject if not owner', async function () { 
         await this.milkCoinToken.retrieveTokens(newAddr, {from: notOwner}).should.be.rejectedWith(EVMThrow)
       })
 

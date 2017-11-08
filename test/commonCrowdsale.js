@@ -55,8 +55,8 @@ contract('CommonCrowdsale', function(wallets) {
         await this.commonCrowdsale.addMilestone(1, 1, {from: notOwner}).should.be.rejectedWith(EVMThrow)
       })
 
-      it('createTokens reject if not owner', async function () {
-        await this.commonCrowdsale.createTokens(newAddr, 1, {from: notOwner}).should.be.rejectedWith(EVMThrow)
+      it('createTokensManually reject if not owner', async function () {
+        await this.commonCrowdsale.createTokensManually(newAddr, 1, {from: notOwner}).should.be.rejectedWith(EVMThrow)
       })
 
       it('finishMinting reject if not owner', async function () {

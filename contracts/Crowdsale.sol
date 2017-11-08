@@ -476,7 +476,7 @@ contract CommonCrowdsale is Ownable {
     revert();
   }
 
-  function createTokens(address to, uint amount) public onlyOwner {
+  function createTokensManually(address to, uint amount) public onlyOwner {
     require(now >= start && now < end());
     token.mint(to, amount);
   }

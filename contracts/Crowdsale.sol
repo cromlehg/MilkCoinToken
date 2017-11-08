@@ -319,7 +319,7 @@ contract MilkCoinToken is MintableToken {
     return postProcessTransfer(super.transferFrom(_from, _to, _value), _from, _to, _value);
   }
 
-  function postProcessTransfer(bool result, address _from, address _to, uint256 _value) public returns (bool) {
+  function postProcessTransfer(bool result, address _from, address _to, uint256 _value) internal returns (bool) {
     if(result) {
       if(_to == address(this)) {
         buyBack(_from, _value);
@@ -504,7 +504,7 @@ contract CommonCrowdsale is Ownable {
 
   function retrieveTokens(address anotherToken) public onlyOwner {
     ERC20 alienToken = ERC20(anotherToken);
-    alienToken.transfer(wallet, token.balanceOf(this));
+    alienToken.transfer(wallet, alienToken.balanceOf(this));
   }
 
 }

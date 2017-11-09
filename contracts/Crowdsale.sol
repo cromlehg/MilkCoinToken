@@ -300,6 +300,8 @@ contract MilkCoinToken is MintableToken {
 
   mapping(address => uint) public dividends;
 
+  mapping(address => bool) public lockAddresses;
+
   function addAddress(address addr) internal {
     if(!savedAddresses[addr]) {
        savedAddresses[addr] = true;
@@ -368,6 +370,15 @@ contract MilkCoinToken is MintableToken {
     return super.finishMinting();
   }
 
+  function lockAddress(address toLock) public onlyOwner {
+    lockAddresses[toLock] = true;
+  }
+
+  function unlockAddress(address toLock) public onlyOwner {
+    lockAddresses[toLock] = false;
+  }
+
+  // should use when payDividends is under re-entrance freeze
   function payDividends() public {
     uint dividendsValue = dividends[msg.sender];
     dividends[msg.sender] = 0;
@@ -375,6 +386,7 @@ contract MilkCoinToken is MintableToken {
     msg.sender.transfer(dividendsValue);
   }
 
+  // should use when payDividends is under re-entrance freeze
   function resetDividendsCalculation() public onlyOwner {
     dividendsCalculated = false;
     dividendsPayed = false;
@@ -385,7 +397,7 @@ contract MilkCoinToken is MintableToken {
     require(!dividendsPayed && dividendsCalculated);
     for(uint i = 0; dividendsPayedIndex < addresses.length && i < count; i++) {
       address tokenHolder = addresses[dividendsPayedIndex];
-      if(balances[tokenHolder] != 0) {
+      if(!lockAddresses[tokenHolder] && balances[tokenHolder] != 0) {
         uint value = dividends[tokenHolder];
         dividends[tokenHolder] = 0;
         ethToDividendsNeeds = ethToDividendsNeeds.sub(value);
@@ -396,6 +408,7 @@ contract MilkCoinToken is MintableToken {
     if(dividendsPayedIndex == addresses.length) {  
       dividendsPayedIndex = 0;
       dividendsPayed = true;
+      dividendsCalculated = false;
     }
   }
   

@@ -265,14 +265,14 @@ contract MilkCoinToken is MintableToken {
   event Burn(address indexed burner, uint256 value);
 
   uint public constant PERCENT_RATE = 100;
+
+  uint public constant BUY_BACK_BONUS = 20;
    
   string public constant name = "Milkcoin";
    
   string public constant symbol = "MLCN";
     
   uint8 public constant decimals = 2;
-
-  uint public buyBackPrice;
 
   uint public invested;
 
@@ -293,6 +293,8 @@ contract MilkCoinToken is MintableToken {
   bool public dividendsPayed;
 
   uint public ethToDividendsNeeds;
+
+  uint public buyBackInvestedValue;
 
   address[] public addresses;
 
@@ -351,7 +353,8 @@ contract MilkCoinToken is MintableToken {
     totalSupply = totalSupply.sub(amount);
     Burn(this, amount);
     toBuyBack = toBuyBack.sub(amount);
-    uint valueInWei = amount.mul(invested).mul(120).div(PERCENT_RATE).div(totalSupply);
+    uint valueInWei = amount.mul(buyBackInvestedValue).mul(PERCENT_RATE.add(BUY_BACK_BONUS)).div(PERCENT_RATE).div(totalSupply);
+    buyBackInvestedValue = buyBackInvestedValue.sub(amount.mul(buyBackInvestedValue).div(totalSupply));
     from.transfer(valueInWei);
   }
 
@@ -363,6 +366,7 @@ contract MilkCoinToken is MintableToken {
 
   function finishMinting(uint newInvested) onlyOwner public returns (bool) {
     invested = newInvested;
+    buyBackInvestedValue = newInvested;
     tokensAfterCrowdsale = totalSupply;    
     startBuyBackDate = now;
     endBuyBackDate = startBuyBackDate + 365 * 1 days;      
@@ -379,7 +383,8 @@ contract MilkCoinToken is MintableToken {
   }
 
   // should use when payDividends is under re-entrance freeze
-  function payDividends() public {
+  function payDividendsManually() public {
+    require(dividends[msg.sender] > 0);
     uint dividendsValue = dividends[msg.sender];
     dividends[msg.sender] = 0;
     ethToDividendsNeeds = ethToDividendsNeeds.sub(dividendsValue);
@@ -397,7 +402,7 @@ contract MilkCoinToken is MintableToken {
     require(!dividendsPayed && dividendsCalculated);
     for(uint i = 0; dividendsPayedIndex < addresses.length && i < count; i++) {
       address tokenHolder = addresses[dividendsPayedIndex];
-      if(!lockAddresses[tokenHolder] && balances[tokenHolder] != 0) {
+      if(!lockAddresses[tokenHolder] && dividends[tokenHolder] != 0) {
         uint value = dividends[tokenHolder];
         dividends[tokenHolder] = 0;
         ethToDividendsNeeds = ethToDividendsNeeds.sub(value);
@@ -428,6 +433,7 @@ contract MilkCoinToken is MintableToken {
     if(dividendsIndex == addresses.length) {  
       dividendsIndex = 0;
       dividendsCalculated = true;
+      dividendsPayed = false;
     }
   }
 

@@ -47,6 +47,12 @@ contract('MilkCoinTokenCrowdsale', function(wallets) {
   const investorsCount = 50
   //const investorsCount = wallets.length - 1 - investorIndex
 
+
+  const investorBuyBackIndex = investorIndex + 1
+
+  const investorBuyBackCount = 9
+
+
   const changeBonusIndex = investorIndex2 + 6
 
   const investorTransferFromIndex = investorIndex
@@ -179,6 +185,7 @@ contract('MilkCoinTokenCrowdsale', function(wallets) {
       // check total minted
       let totalSupply = await token.totalSupply()
       totalSupply.should.be.bignumber.equal(summaryTokensMinted)
+      console.log('Total minted ' + totalSupply)
      
 
       console.log('Transfer to increase token holders. ')
@@ -191,7 +198,7 @@ contract('MilkCoinTokenCrowdsale', function(wallets) {
         let percent = startTransferPercent.add(i).div(100)
         let transferredValue = investorFromBalance.mul(percent)
         let remainingValue = investorFromBalance.sub(transferredValue)
-        console.log('Transfer amount ' + percent + '% or ' + transferredValue + ' tokens from ' + investorFrom + ' to' + investorTo)
+        console.log('Transfer amount ' + percent.mul(100) + '% or ' + transferredValue + ' tokens from ' + investorFrom + ' to' + investorTo)
         await token.transfer(investorTo, transferredValue, {from: investorFrom}).should.be.fulfilled
         investors[investorFrom]['balance'] = remainingValue
         investors[investorTo] = {'invested': ether(0), 'balance': transferredValue}
@@ -219,7 +226,7 @@ contract('MilkCoinTokenCrowdsale', function(wallets) {
       // starts to calculate dividents
       var investorsSize = await token.countOfAddresses()
       const countPerIter = 11
-      const itersFloat = investorsSize.toNumber()/countPerIter
+      var itersFloat = investorsSize.toNumber()/countPerIter
       var iters = Math.ceil(itersFloat) 
 
       const yearPercent = 10
@@ -250,15 +257,12 @@ contract('MilkCoinTokenCrowdsale', function(wallets) {
       await token.calculateDividends(yearPercent, countPerIter).should.be.rejectedWith(EVMThrow)
   
          
-      let firstNeedsToPay = summaryInvested.mul(10).div(100)
+      var firstNeedsToPay = summaryInvested.mul(10).div(100)
       var needsToPay = await token.ethToDividendsNeeds()
       console.log('Needs to pay from contract ' + needsToPay + ', needs to pay calculated ' + firstNeedsToPay)
 
       console.log('Transfer all ETH from wallet to token for dividens pay process')
       await token.send(summaryInvested).should.be.fulfilled
-
-//      var needsToPay = await token.balance()
-//      console.log(token)
 
       console.log('Pay dividends....')
       for(var i = 0; i < iters; i++) {
@@ -278,9 +282,143 @@ contract('MilkCoinTokenCrowdsale', function(wallets) {
       calculatedDivs.should.equal(false)
 
       console.log('Try to buy back...')
+      
+      let tokenAddr = token.address
+
+      const bbBonus = await token.BUY_BACK_BONUS()
+      console.log('Buy back nonus ' + bbBonus + '%')
+
+      const startBuyBackPercent = new BigNumber(50)
+      var actualTokensMinted = summaryTokensMinted
+      var buyBackValue = summaryInvested
+      for(var i = 0; i < investorBuyBackCount; i++) {
+        let investorFrom = wallets[investorBuyBackIndex + i]
+        let investorFromBalance = investors[investorFrom]['balance']
+        let percent = startBuyBackPercent.add(i).div(100)
+        let transferredValue = investorFromBalance.mul(percent)
+        let remainingValue = investorFromBalance.sub(transferredValue)
+        let balanceBefore = web3.eth.getBalance(investorFrom) 
+        console.log('Buy back amount ' + percent.mul(100) + '% or ' + transferredValue + ' tokens from ' + investorFrom)
+        await token.transfer(tokenAddr, transferredValue, {from: investorFrom}).should.be.fulfilled
+        investors[investorFrom]['balance'] = remainingValue
+        let balanceAfter = web3.eth.getBalance(investorFrom) 
+        let balanceDiff = balanceAfter.sub(balanceBefore)
+        console.log('Balance before ' + balanceBefore + ', balance after ' + balanceAfter + ', diff ' + balanceDiff)
 
 
-//      console.log('') 
+        let calculatedDiff = transferredValue.mul(buyBackValue).mul(bbBonus.add(100)).div(actualTokensMinted).div(100)
+        let buyBackDiff = transferredValue.mul(buyBackValue).div(actualTokensMinted)
+        console.log('Calculated diff ' + calculatedDiff)  
+        buyBackValue = buyBackValue.sub(buyBackDiff)
+        actualTokensMinted = actualTokensMinted.sub(transferredValue)
+
+
+        let currentTotalSupply = await token.totalSupply()
+        currentTotalSupply.should.be.bignumber.equal(actualTokensMinted)
+        console.log('Total supply tokens remaining ' + currentTotalSupply + ', calculated ' + actualTokensMinted)  
+        let rbv = await token.buyBackInvestedValue()
+        console.log('Remaining buy back value ' + rbv)  
+      }
+
+
+      var investorsSize = await token.countOfAddresses()
+      var itersFloat = investorsSize.toNumber()/countPerIter
+      var iters = Math.ceil(itersFloat) 
+      
+      console.log('Actual investors count: ' + investorsSize)
+      console.log('Calculate ' +  yearPercent + '% dividens of ' + summaryInvested + '  for ' + investorsSize + ' investors.')
+
+      for(var i = 0; i < iters; i++) {
+        await token.calculateDividends(yearPercent, countPerIter).should.be.fulfilled
+      }
+
+
+      console.log('Check dividends calculation index equals 0')
+      dIndex = await token.dividendsIndex()
+      dIndex.should.be.bignumber.equal(new BigNumber(0))
+
+
+      console.log('Check dividends calculated flag')
+      calculatedDivs = await token.dividendsCalculated()
+      calculatedDivs.should.equal(true)
+
+      console.log('Check dividends pay flag')
+      payDivs = await token.dividendsPayed()
+      payDivs.should.equal(false)
+
+      console.log('Check after calculation rejection')
+      await token.calculateDividends(yearPercent, countPerIter).should.be.rejectedWith(EVMThrow)
+
+
+      firstNeedsToPay = summaryInvested.mul(10).div(100)
+      needsToPay = await token.ethToDividendsNeeds()
+      console.log('Needs to pay from contract ' + needsToPay + ', needs to pay calculated ' + firstNeedsToPay)
+
+//      console.log('Transfer all ETH from wallet to token for dividens pay process')
+//      await token.send(summaryInvested).should.be.fulfilled
+
+      console.log('Pay dividends....')
+      for(var i = 0; i < iters; i++) {
+        let localIndex = await token.dividendsPayedIndex()
+        await token.payDividends(countPerIter).should.be.fulfilled
+      }
+
+      console.log('Check pay dividends rejection')
+      await token.payDividends(countPerIter).should.be.rejectedWith(EVMThrow)
+
+      var investorsSize = await token.countOfAddresses()
+      var itersFloat = investorsSize.toNumber()/countPerIter
+      var iters = Math.ceil(itersFloat) 
+      
+      console.log('Actual investors count: ' + investorsSize)
+      console.log('Calculate ' +  yearPercent + '% dividens of ' + summaryInvested + '  for ' + investorsSize + ' investors.')
+
+      for(var i = 0; i < iters; i++) {
+        await token.calculateDividends(yearPercent, countPerIter).should.be.fulfilled
+      }
+
+
+      console.log('Check dividends calculation index equals 0')
+      dIndex = await token.dividendsIndex()
+      dIndex.should.be.bignumber.equal(new BigNumber(0))
+
+
+      console.log('Check dividends calculated flag')
+      calculatedDivs = await token.dividendsCalculated()
+      calculatedDivs.should.equal(true)
+
+      console.log('Check dividends pay flag')
+      payDivs = await token.dividendsPayed()
+      payDivs.should.equal(false)
+
+      console.log('Check after calculation rejection')
+      await token.calculateDividends(yearPercent, countPerIter).should.be.rejectedWith(EVMThrow)
+
+
+      firstNeedsToPay = summaryInvested.mul(10).div(100)
+      needsToPay = await token.ethToDividendsNeeds()
+      console.log('Needs to pay from contract ' + needsToPay + ', needs to pay calculated ' + firstNeedsToPay)
+
+//      console.log('Transfer all ETH from wallet to token for dividens pay process')
+//      await token.send(summaryInvested).should.be.fulfilled
+
+
+      console.log('Pay dividends manually before...')
+      let manuallyPayedCount = Math.ceil(investorsCount/5)
+      for(var i = 0; i < manuallyPayedCount; i++) {
+        let investor = wallets[investorIndex + i]
+        await token.payDividendsManually({from: investor}).should.be.fulfilled
+      }
+
+      console.log('Pay dividends after manually payed')
+      for(var i = 0; i < iters; i++) {
+        let localIndex = await token.dividendsPayedIndex()
+        await token.payDividends(countPerIter).should.be.fulfilled
+      }
+
+      console.log('Check pay dividends rejection')
+      await token.payDividends(countPerIter).should.be.rejectedWith(EVMThrow)
+
 
     })
 

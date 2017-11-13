@@ -18,10 +18,6 @@
 Contract mint bounty, advisors and founders tokens after each stage finished. 
 Crowdsale contracts have special function to retrieve transferred in errors tokens.
 
-### Contracts contains
-1. _MilkCoinToken_ 
-2. _MilkCoinCrowdsale_
-
 ### How to manage contract
 To start working with contract you should follow next steps:
 1. Compile it in Remix with enamble optimization flag and compiler 0.4.18
@@ -47,6 +43,10 @@ Investor must not use other wallets, coinmarkets or stocks. Can lose money.
 * _Base price_                 : 1500 MLCN per ETH
 * _Minimal insvested limit_    : 0.1 ETH
 
+### Contracts contains
+1. _MilkCoinToken_ - https://etherscan.io/token/0xb008b81eaa812a3e5ab6e8a9a9233fa31b744d6d#readContract
+2. _MilkCoinCrowdsale_ - https://etherscan.io/address/0x4341852389bd149920cae3540dd88031ade8d0e6#readContract
+
 ### ICO
 * _Hardcap_                    : 250000 ETH
 * _Start_                      : Wed, 15 Nov 2017 15:00:00 GMT
@@ -62,3 +62,27 @@ _Milestones_
 4. 5 days                      : bonus +25%
 5. 12 days                     : no bonus
 
+
+## Kovan network configuration
+
+* _Base price_                 : 1500 MLCN per ETH
+* _Minimal insvested limit_    : 0.1 ETH
+
+### Contracts contains
+1. _MilkCoinToken_ - https://kovan.etherscan.io/token/0x03493d89004f83ecea78cfdb06ce8d981025204a#readContract
+2. _MilkCoinCrowdsale_ - https://kovan.etherscan.io/address/0x5ad7d92958062cadbab287f1a9f5fecc0fa6989f#readContract
+
+### ICO
+* _Hardcap_                    : 250000 ETH
+* _Start_                      : Wed, 13 Nov 2017 00:00:00 GMT
+* _End_                        : Fri, 15 Dec 2017 00:00:00 GMT
+* _Contract manager_           : 0xb8600b335332724Df5108Fc0595002409c2ADbC6
+* _ETH Wallet_                 : 0xb8600b335332724Df5108Fc0595002409c2ADbC6
+
+_Milestones_
+
+1. 1 days                      : bonus +100%
+5. 1 days                      : no bonus
+
+### Transactions
+* https://kovan.etherscan.io/tx/0xc6be2fe3df85e9a1342678d3e3a2e1c6025311cebacb542e197191c1103ccece

@@ -368,7 +368,7 @@ contract MilkCoinToken is MintableToken {
     invested = newInvested;
     buyBackInvestedValue = newInvested;
     tokensAfterCrowdsale = totalSupply;    
-    startBuyBackDate = now;
+    startBuyBackDate = 1609459200;
     endBuyBackDate = startBuyBackDate + 365 * 1 days;      
     toBuyBack = tokensAfterCrowdsale.div(10);
     return super.finishMinting();
@@ -572,7 +572,7 @@ contract MilkCoinTokenCrowdsale is CommonCrowdsale {
     addMilestone(5, 43);
     addMilestone(5, 25);
     addMilestone(12, 0);
-   // transferOwnership(0xb794B6c611bFC09ABD206184417082d3CA570FB7);
+    transferOwnership(0xb794B6c611bFC09ABD206184417082d3CA570FB7);
   }
 
 }
